@@ -16,7 +16,7 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
 /**
  * A listener forwarding its invocation to a service.
  */
-class LazyServiceListener
+class LazyServiceListener implements IntrospectableCallable
 {
     /**
      * The container from where service is loaded
@@ -51,35 +51,20 @@ class LazyServiceListener
     }
 
     /**
+     * {@inheritdoc}
+     */
+    public function getInnerCallable()
+    {
+        $service = $this->container->get($this->serviceId);
+        return array($service, $this->method);
+    }
+
+    /**
      * Retrieves the service from the container and forwards the method call.
      */
     public function __invoke(Event $event, $eventName, EventDispatcherInterface $dispatcher)
     {
-        $service = $this->container->get($this->serviceId);
-        $service->{$this->method}($event, $eventName, $dispatcher);
-    }
-
-    /**
-     * Returns the container.
-     */
-    public function getContainer()
-    {
-        return $this->container;
-    }
-
-    /**
-     * Returns the service id.
-     */
-    public function getServiceId()
-    {
-        return $this->serviceId;
-    }
-
-    /**
-     * Returns the method name.
-     */
-    public function getMethod()
-    {
-        return $this->method;
+        $listener = $this->getInnerCallable();
+        $listener($event, $eventName, $dispatcher);
     }
 }
